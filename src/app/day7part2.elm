@@ -71,8 +71,6 @@ parseLines lines =
                             dependency
                 ) lines
 
-        log1 = Debug.log "dependencyList" dependencyList
-
         dependencies =
             List.foldl 
                 (\dependency dict ->
@@ -88,12 +86,8 @@ parseLines lines =
 
                 ) Dict.empty dependencyList
 
-        log2 = Debug.log "dependencies" dependencies
-
         available = 
             calculateAvailable dependencies
-
-        log3 = Debug.log "available" available
 
         workers = List.repeat 5 { step = "", secondsRemaining = 0 }
 
@@ -173,8 +167,6 @@ timeStep workers available dependencies elapsedTime =
         workingWorkers = 
             haveWorkersDoWork workers
 
-        log1 = Debug.log "workingWorkers" workingWorkers
-        
         stepsCompleted = 
             List.foldl 
                 (\value steps ->
@@ -185,12 +177,8 @@ timeStep workers available dependencies elapsedTime =
                             steps
                 ) [] workingWorkers
 
-        log2 = Debug.log "stepsCompleted" stepsCompleted
-
         workersAvailable = 
             areWorkersAvailable workingWorkers
-
-        log3 = Debug.log "workersAvailable" workersAvailable
 
         updatedUnblockedStepsAndDependencies = 
             List.foldl
@@ -215,18 +203,12 @@ timeStep workers available dependencies elapsedTime =
 
                 ) {unblockedSteps = [], dependencies = Dict.empty} (Dict.keys dependencies)
 
-        updatedLog = Debug.log "updatedDependenciesBasedOnStepCompletion" updatedUnblockedStepsAndDependencies
-
         stepsUnblocked =
             updatedUnblockedStepsAndDependencies.unblockedSteps
             |> Set.fromList
             |> Set.union (Set.fromList available) 
             |> Set.toList
             |> List.sort
-
-        availableLog = Debug.log "available" available
-
-        steplog = Debug.log "stepsUnblocked" stepsUnblocked
 
     in
         if (not (List.isEmpty stepsUnblocked) && workersAvailable) then
@@ -235,10 +217,8 @@ timeStep workers available dependencies elapsedTime =
                     assignStepsToAvailableWorkers workingWorkers stepsUnblocked
 
                 updatedWorkers = Tuple.first workersAndStepsTuple
-                log4 = Debug.log "updatedWorkers" updatedWorkers
 
                 updatedSteps = Tuple.second workersAndStepsTuple
-                log5 = Debug.log "updatedSteps" updatedSteps
 
             in
                 timeStep updatedWorkers updatedSteps updatedUnblockedStepsAndDependencies.dependencies (elapsedTime + 1)
@@ -253,7 +233,6 @@ timeStep workers available dependencies elapsedTime =
                                 found
                         ) False workingWorkers
 
-                log6 = Debug.log "areWorkersWorking" areWorkersWorking
             in
                 if areWorkersWorking then
                     timeStep workingWorkers stepsUnblocked updatedUnblockedStepsAndDependencies.dependencies (elapsedTime + 1)
