@@ -63,7 +63,7 @@ parseNode data =
 
                         _ ->
                             List.foldl
-                                (\value result ->
+                                (\_ result ->
                                     let 
                                         childResult = parseNode result
                                     in
@@ -74,7 +74,7 @@ parseNode data =
 
             in
                 List.foldl
-                    (\value result ->
+                    (\_ result ->
                         case result.list of
                             metadata :: remainder ->
                                 case numberOfChildrenNodes of
