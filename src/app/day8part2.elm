@@ -66,11 +66,11 @@ parseNode data =
                                 (\_ result ->
                                     let 
                                         childResult = parseNode result
+
                                     in
                                         {childResult | children = (List.append result.children [childResult.total])}
-                                            |> maybeDebug "children traverse" 
+
                                 ) {data | list = rest, children = []} childRange
-                                |> maybeDebug "children folded" 
 
             in
                 List.foldl
