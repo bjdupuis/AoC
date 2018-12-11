@@ -19,7 +19,7 @@ maybeDebug text a =
     else
         a
 
-calculate : String -> Model
+calculate : String -> { highestTopLeft : ( Int, Int ), highestGridSize : Int }
 calculate inputVal =
     let
         serialNumber =
@@ -47,61 +47,98 @@ calculate inputVal =
 --            |> maybeDebug "grid"
     in
         List.foldl
-            (\gridSize best ->
+            (\gridSize result ->
                 let
-                    current = calculateHighestPowerLevelForGridSize gridSize fuelGrid
+                    current =
+                        calculatePowerLevelsForGrid gridSize fuelGrid result.currentGrid
 
+                    newResult =
+                        if current.highestPowerLevel > result.highestPowerLevel then 
+                            { result
+                            | highestPowerLevel = current.highestPowerLevel
+                            , highestTopLeft = current.highestTopLeft
+                            , highestGridSize = gridSize
+                            , currentGrid = current.resultingGrid
+                            }
+                        else
+                            { result 
+                            | currentGrid = current.resultingGrid
+                            }
+
+                    debug = 
+                        maybeDebug ("completed " ++ (String.fromInt gridSize)) { highestTopLeft = newResult.highestTopLeft, highestPowerLevel = newResult.highestPowerLevel }
                 in
-                    if current.highestPowerLevel > best.highestPowerLevel then
-                        {best | highestGridSize = gridSize, highestTopLeft = current.highestTopLeft, highestPowerLevel = current.highestPowerLevel}
-                    else
-                        best
-            ) { highestTopLeft = (0,0), highestPowerLevel = 0, highestGridSize = 0 } (List.range 1 300)
+                    newResult
+
+            ) { currentGrid = fuelGrid, highestGridSize = 1, highestTopLeft = (0,0), highestPowerLevel = 0} (List.range 2 300)
         |> (\result ->
-                { topLeft = result.highestTopLeft
-                , size = result.highestGridSize}
+                { highestTopLeft = result.highestTopLeft, highestGridSize = result.highestGridSize }
             )
 
-calculateHighestPowerLevelForGridSize : Int -> Dict (Int, Int) Int -> { highestTopLeft : (Int, Int), highestPowerLevel : Int }
-calculateHighestPowerLevelForGridSize gridSize grid =
-    List.foldl
-        (\x result ->
-            List.foldl
-                (\y r ->
-                    let
-                        currentGridTopLeft = 
-                            (x, y)
-
-                        powerLevel = 
-                            calculatePowerLevelForGrid gridSize currentGridTopLeft grid
-
-                    in
-                        if powerLevel > r.highestPowerLevel then
-                            {r | highestPowerLevel = powerLevel, highestTopLeft = currentGridTopLeft}
-                        else
-                            r
-                ) result (List.range 1 (300 - (gridSize - 1)))
-        ) { highestTopLeft = (0,0), highestPowerLevel = 0 } (List.range 1 (300 - (gridSize - 1)))
-            |> maybeDebug ("Finished " ++ (String.fromInt gridSize))
-
-calculatePowerLevelForGrid : Int -> (Int, Int) -> Dict (Int, Int) Int -> Int
-calculatePowerLevelForGrid gridSize topLeft grid =
+calculatePowerLevelsForGrid : Int -> Dict (Int, Int) Int -> Dict (Int, Int) Int -> { resultingGrid : Dict (Int, Int) Int, highestPowerLevel : Int, highestTopLeft : (Int, Int)}
+calculatePowerLevelsForGrid gridSize originalGrid grid =
     List.foldl 
         (\x total ->
             List.foldl
                 (\y t ->
-                    t + (Dict.get (x, y) grid |> Maybe.withDefault 0)
-                ) total (List.range (Tuple.second topLeft) ((Tuple.second topLeft) + gridSize - 1))
-        ) 0 (List.range (Tuple.first topLeft) ((Tuple.first topLeft) + (gridSize - 1)))
+                    let 
+                        powerLevel = 
+                            calculatePowerLevelForTopLeft (x, y) gridSize originalGrid grid
+                    
+                        updatedGrid = 
+                            Dict.insert (x,y) powerLevel t.resultingGrid
+
+                    in
+                        if powerLevel > t.highestPowerLevel then
+                            { t 
+                            | highestPowerLevel = powerLevel
+                            , highestTopLeft = (x, y)
+                            , resultingGrid = updatedGrid }
+                        else
+                            { t
+                            | resultingGrid = updatedGrid }
+                ) total (List.range 1 (300 - (gridSize - 1)))
+        ) { highestPowerLevel = 0, highestTopLeft = (0,0), resultingGrid = Dict.empty } (List.range 1 (300 - (gridSize - 1)))
+
+
+calculatePowerLevelForTopLeft : (Int, Int) -> Int -> Dict (Int, Int) Int -> Dict (Int, Int) Int -> Int
+calculatePowerLevelForTopLeft topLeft gridSize originalGrid grid =
+    let 
+        startingValue =
+            Dict.get topLeft grid |> Maybe.withDefault 0
+
+    in
+        List.foldl 
+            (\x partial ->
+                let
+                    value = 
+                        Dict.get (x, (Tuple.second topLeft) + (gridSize - 1)) originalGrid
+                        |> Maybe.withDefault 0
+                in
+                    partial + value
+
+            ) startingValue (List.range (Tuple.first topLeft) (Tuple.first topLeft + (gridSize - 1)))
+        |> (\partial ->
+                List.foldl 
+                    (\y total ->
+                        let
+                            value = 
+                                Dict.get ((Tuple.first topLeft) + (gridSize - 1), y) originalGrid
+                                |> Maybe.withDefault 0
+                        in
+                            total + value
+
+                    ) partial (List.range (Tuple.second topLeft) (Tuple.second topLeft + (gridSize - 2)))
+            )
 
 type alias Model =
     { topLeft : (Int, Int)
-    , size : Int }
+    , gridSize : Int }
 
 initialModel : Model
 initialModel =
     { topLeft = (0, 0)
-    , size = 0 }
+    , gridSize = 0 }
 
 type Msg
     = Calculate String
@@ -112,15 +149,14 @@ update msg model =
         Calculate newValue ->
             let
                 result = calculate newValue
-
             in
-                { model | topLeft = result.topLeft, size = result.size }
+                { model | topLeft = result.highestTopLeft, gridSize = result.highestGridSize }
 
 view : Model -> Html Msg
 view model =
     div []
         [ 
-          div [] [text <| (String.fromInt (Tuple.first model.topLeft)) ++ "," ++ (String.fromInt (Tuple.second model.topLeft)) ++ "," ++ String.fromInt model.size ]
+          div [] [text <| (String.fromInt (Tuple.first model.topLeft)) ++ "," ++ (String.fromInt (Tuple.second model.topLeft)) ++ "," ++ (String.fromInt model.gridSize) ]
         , textarea [ onInput Calculate ] []
         ]
 
