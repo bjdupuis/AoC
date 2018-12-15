@@ -16,13 +16,15 @@
             "elm/parser": "1.1.0",
             "elm-community/list-extra": "8.1.0",
             "folkertdev/elm-deque": "3.0.0",
-            "lukewestby/elm-http-builder": "6.0.0"
+            "lukewestby/elm-http-builder": "6.0.0",
+            "truqu/elm-md5": "1.1.0"
         },
         "indirect": {
             "elm/bytes": "1.0.7",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
-            "elm/virtual-dom": "1.0.2"
+            "elm/virtual-dom": "1.0.2",
+            "zwilias/elm-utf-tools": "2.0.1"
         }
     },
     "test-dependencies": {
