@@ -27,6 +27,3 @@ while (!done) {
     elves[0] = (elves[0] + recipes[elves[0]] + 1) % numRecipes;
     elves[1] = (elves[1] + recipes[elves[1]] + 1) % numRecipes;
 }
-
-
-</script>
